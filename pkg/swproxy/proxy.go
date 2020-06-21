@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	grpczerolog "github.com/cheapRoc/grpc-zerolog"
 	"github.com/elazarl/goproxy"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -15,35 +16,51 @@ import (
 	"github.com/lyrex/swarpf/pkg/utils"
 )
 
-type proxy struct {
-	log       zerolog.Logger
-	eventChan chan events.ApiEventMsg
+type ProxyConfiguration struct {
+	CertificateDirectory string `default:"./certs/"`
+	InterceptHttps       bool
+}
+
+type Proxy struct {
+	log           zerolog.Logger
+	eventChan     chan events.ApiEventMsg
+	configuration ProxyConfiguration
 }
 
 // proxy.New : Create a new proxy instance for further use
-func New(ev chan events.ApiEventMsg) *proxy {
+func New(ev chan events.ApiEventMsg, configuration ProxyConfiguration) *Proxy {
 	if ev == nil {
 		log.Panic().Msg("ev is not a valid ApiEventMsg channel")
 		return nil
 	}
 
-	return &proxy{
-		log:       log.With().Str("log_type", "app").Str("module", "Proxy").Logger(),
-		eventChan: ev,
+	return &Proxy{
+		log:           log.With().Timestamp().Str("log_type", "module").Str("module", "Proxy").Logger(),
+		eventChan:     ev,
+		configuration: configuration,
 	}
 }
 
-func (p *proxy) CreateProxy() http.Handler {
+func (p *Proxy) CreateProxy() http.Handler {
 	proxy := goproxy.NewProxyHttpServer()
+	proxy.Logger = grpczerolog.New(log.Logger) // todo(lyrex): this need some kind of better implementation that does not just throw everything into INFO
 
-	err := setCA([]byte(caCert), []byte(caKey))
-	if err != nil {
-		p.log.Fatal().Err(err).Msg("could not set proxy CA")
-		return nil
+	if p.configuration.InterceptHttps {
+		rootCa := getRootCA(p.configuration.CertificateDirectory)
+		if err := setCA(rootCa); err != nil {
+			p.log.Fatal().Err(err).Msg("could not set proxy CA")
+			return nil
+		}
+
+		proxy.OnRequest(newProxyGameEndpointMatcher()).HandleConnect(goproxy.AlwaysMitm)
+
+		proxy.OnRequest(newCertificateEndpointMatcher()).DoFunc(
+			func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+				p.log.Info().Msg("service user requested certificate")
+				return req,
+					goproxy.NewResponse(req, goproxy.ContentTypeText, http.StatusOK, string(rootCa.Certificate[0]))
+			})
 	}
-
-	// proxy related handlers
-	proxy.OnRequest(newProxyGameEndpointMatcher()).HandleConnect(goproxy.AlwaysMitm)
 
 	proxy.OnRequest(newGameEndpointMatcher()).
 		DoFunc(p.onRequest)
@@ -54,7 +71,7 @@ func (p *proxy) CreateProxy() http.Handler {
 	return proxy
 }
 
-func (p *proxy) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
+func (p *Proxy) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
 	requestLogger := p.log.With().Int64("ctx.Session", ctx.Session).Logger()
 
 	requestLogger.Trace().
@@ -66,14 +83,12 @@ func (p *proxy) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Reque
 		requestLogger.Info().Msg("Sending empty request to API")
 		return req, nil
 	}
-
 	reqBody, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		requestLogger.Error().Err(err).Msg("could not read request body")
 		return req, nil
 	}
 
-	// todo(lyrex): figure out if we even need to set a new body
 	req.Body = ioutil.NopCloser(bytes.NewBuffer(reqBody))
 
 	reqContent := string(reqBody[:])
@@ -93,7 +108,7 @@ func (p *proxy) onRequest(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Reque
 	return req, nil
 }
 
-func (p *proxy) onResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+func (p *Proxy) onResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
 	responseLogger := p.log.With().Int64("ctx.Session", ctx.Session).Logger()
 
 	responseLogger.Trace().
@@ -106,7 +121,6 @@ func (p *proxy) onResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Res
 		return resp
 	}
 
-	// fixme(lyrex): use io.Copy instead of ioutil.ReadAll here: https://haisum.github.io/2017/09/11/golang-ioutil-readall/
 	respBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		responseLogger.Error().Err(err).Msg("could not read response body")
@@ -133,7 +147,7 @@ func (p *proxy) onResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Res
 	return resp
 }
 
-func (p *proxy) readBody(body string, decompress bool) (string, error) {
+func (p *Proxy) readBody(body string, decompress bool) (string, error) {
 	if len(body) == 0 {
 		return "", nil
 	}

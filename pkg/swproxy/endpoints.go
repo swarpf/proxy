@@ -36,13 +36,12 @@ func (s proxyGameEndpointMatcher) matches(ctx *goproxy.ProxyCtx) bool {
 	if hostMatches {
 		log.Trace().
 			Str("log_type", "module").
-			Str("module", "ProxyGameEndpointMatcher").
+			Str("module", "proxyGameEndpointMatcher").
 			Str("host", ctx.Req.Host).
 			Stringer("url", ctx.Req.URL).
 			Str("method", ctx.Req.Method).
-			Bool("isGetMethod", methodMatches).
-			Bool("hostMatches", hostMatches).
-			Msg("")
+			Bool("endpoint_matches", methodMatches && hostMatches).
+			Msg("Checking if endpoint matches")
 	}
 
 	return methodMatches && hostMatches
@@ -66,19 +65,42 @@ func (s gameEndpointMatcher) HandleResp(_ *http.Response, ctx *goproxy.ProxyCtx)
 
 func (s gameEndpointMatcher) matches(ctx *goproxy.ProxyCtx) bool {
 	methodMatches := ctx.Req.Method == "GET" || ctx.Req.Method == "POST"
-	hostMatches := strings.Contains(ctx.Req.Host, "qpyou.cn")
+	hostMatches := strings.HasPrefix(ctx.Req.Host, "summonerswar-") &&
+		strings.HasSuffix(ctx.Req.Host, "qpyou.cn")
 	urlMatches := ctx.Req.URL.Path == "/api/gateway_c2.php"
 
-	log.Trace().
-		Str("log_type", "module").
-		Str("module", "GameEndpointMatcher").
-		Str("host", ctx.Req.Host).
-		Stringer("url", ctx.Req.URL).
-		Str("method", ctx.Req.Method).
-		Bool("isGetMethod", methodMatches).
-		Bool("hostMatches", hostMatches).
-		Bool("urlMatches", hostMatches).
-		Msg("")
+	if hostMatches {
+		log.Trace().
+			Str("log_type", "module").
+			Str("module", "gameEndpointMatcher").
+			Str("host", ctx.Req.Host).
+			Stringer("url", ctx.Req.URL).
+			Str("method", ctx.Req.Method).
+			Bool("endpoint_matches", methodMatches && hostMatches).
+			Msg("Checking if endpoint matches")
+	}
 
 	return methodMatches && hostMatches && urlMatches
+}
+
+// Certificate endpoint matcher
+// used to serve the certificate to the user if requested
+type certificateEndpointMatcher struct{}
+
+func newCertificateEndpointMatcher() *certificateEndpointMatcher {
+	return new(certificateEndpointMatcher)
+}
+
+func (s certificateEndpointMatcher) HandleReq(_ *http.Request, ctx *goproxy.ProxyCtx) bool {
+	return s.matches(ctx)
+}
+
+func (s certificateEndpointMatcher) HandleResp(_ *http.Response, ctx *goproxy.ProxyCtx) bool {
+	return s.matches(ctx)
+}
+
+func (s certificateEndpointMatcher) matches(ctx *goproxy.ProxyCtx) bool {
+	log.Debug().Msg("matched for user requested certificate")
+
+	return ctx.Req.Method == "GET" && ctx.Req.URL.Path == "/ca.crt"
 }

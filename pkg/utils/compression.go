@@ -11,7 +11,7 @@ func CompressBytes(plaintext []byte) ([]byte, error) {
 	var buf bytes.Buffer
 	w := zlib.NewWriter(&buf)
 
-	if _, err := w.Write([]byte(plaintext)); err != nil {
+	if _, err := w.Write(plaintext); err != nil {
 		return nil, err
 	}
 
