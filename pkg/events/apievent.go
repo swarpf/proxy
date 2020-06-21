@@ -1,12 +1,7 @@
 package events
 
-import (
-	"github.com/olebedev/emitter"
-)
-
-type ApiEventEmitter = emitter.Emitter
-
 type ApiEventMsg struct {
+	Command  string
 	Request  string
 	Response string
 }
