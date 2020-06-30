@@ -319,7 +319,6 @@ func NewRuneStatFromObject(obj interface{}) (*RuneStat, error) {
 			IsEnchanted: false,
 			GrindValue:  0,
 		}
-		break
 	case 4:
 		runeStat = &RuneStat{
 			EffectType:  effectType,
@@ -327,7 +326,6 @@ func NewRuneStatFromObject(obj interface{}) (*RuneStat, error) {
 			IsEnchanted: data[2] == 1,
 			GrindValue:  data[3],
 		}
-		break
 	default:
 		return nil, errors.New("obj data is corrupt")
 	}

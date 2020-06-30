@@ -130,6 +130,10 @@ func (p *Proxy) onResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Res
 
 	respContent := string(respBody[:])
 	responsePlainContent, err := p.readBody(respContent, true)
+	if err != nil {
+		// do not log here since we're logging the actual error in readBody
+		return resp
+	}
 
 	responseLogger.Trace().
 		Str("encryptedContent", respContent).

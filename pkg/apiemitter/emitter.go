@@ -160,7 +160,9 @@ func (e *Emitter) Emit(topic string, apiEvent events.ApiEventMsg) chan struct{} 
 
 		for i := len(listeners) - 1; i >= 0; i-- {
 			lstnr := listeners[i]
-			evn := *(&event) // copy the event
+
+			// evn := *(&event) // copy the event
+			evn := event
 
 			wg.Add(1)
 			haveToWait = true
@@ -179,7 +181,7 @@ func (e *Emitter) Emit(topic string, apiEvent events.ApiEventMsg) chan struct{} 
 	}
 	if haveToWait {
 		go func(done chan struct{}) {
-			defer func() { recover() }()
+			defer func() { _ = recover() }()
 			wg.Wait()
 			close(done)
 		}(done)
