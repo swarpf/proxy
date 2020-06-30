@@ -1,0 +1,23 @@
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+
+FROM --platform=$BUILDPLATFORM golang:alpine AS build
+
+RUN echo "> running on $BUILDPLATFORM, building for $TARGETPLATFORM"
+RUN apk add --no-cache ca-certificates git
+
+ENV CGO_ENABLED 0
+ENV GO111MODULE on
+ENV GOPROXY https://goproxy.io
+
+# Compile the cmd to a standalone binary
+WORKDIR /app
+COPY . .
+RUN go build -ldflags "-s -w -extldflags '-static'" ./cmd/plugins/swaglogger
+
+
+FROM scratch
+COPY --from=build /etc/ssl/certs/ca-certificates.crt \
+     /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /app/swaglogger /swaglogger
+ENTRYPOINT ["/swaglogger"]

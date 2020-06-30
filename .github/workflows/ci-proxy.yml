@@ -16,7 +16,8 @@ jobs:
       # Default is true, cancels jobs for other platforms in the matrix if one fails
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest ]
+        # os: [ ubuntu-latest, macos-latest, windows-latest ]
         goVersion: [ 1.14.x ]
 
         # Set some variables per OS, usable via ${{ matrix.VAR }}
@@ -27,13 +28,13 @@ jobs:
             SWARPF_PROXY_BIN_PATH: ./cmd/proxy/proxy
             SUCCESS: 0
 
-          - os: macos-latest
-            SWARPF_PROXY_BIN_PATH: ./cmd/proxy/proxy
-            SUCCESS: 0
-
-          - os: windows-latest
-            SWARPF_PROXY_BIN_PATH: ./cmd/proxy/proxy.exe
-            SUCCESS: 'True'
+#          - os: macos-latest
+#            SWARPF_PROXY_BIN_PATH: ./cmd/proxy/proxy
+#            SUCCESS: 0
+#
+#          - os: windows-latest
+#            SWARPF_PROXY_BIN_PATH: ./cmd/proxy/proxy.exe
+#            SUCCESS: 'True'
 
     runs-on: ${{ matrix.os }}
 
@@ -90,22 +91,24 @@ jobs:
       # Default is true, cancels jobs for other platforms in the matrix if one fails
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
+        # os: [ ubuntu-latest, macos-latest, windows-latest ]
+        os: [ ubuntu-latest ]
         goVersion: [ 1.14.x ]
-        plugin: [ debugout, swaglogger ]
+        # plugin: [ debugout, swaglogger ]
+        plugin: [ swaglogger ]
 
         include:
           - os: ubuntu-latest
             OS_BINARY_FILE_EXTENSION: ''
             SUCCESS: 0
-
-          - os: macos-latest
-            OS_BINARY_FILE_EXTENSION: ''
-            SUCCESS: 0
-
-          - os: windows-latest
-            OS_BINARY_FILE_EXTENSION: '.exe'
-            SUCCESS: 'True'
+#
+#          - os: macos-latest
+#            OS_BINARY_FILE_EXTENSION: ''
+#            SUCCESS: 0
+#
+#          - os: windows-latest
+#            OS_BINARY_FILE_EXTENSION: '.exe'
+#            SUCCESS: 'True'
 
     runs-on: ${{ matrix.os }}
 
