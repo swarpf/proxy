@@ -32,7 +32,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       # Publish the proxy docker image
-      - name: Docker Buildx (push) - Proxy
+      - name: Docker Buildx (build and push) - Proxy
         if: success() && github.event_name != 'pull_request'
         run: |
           docker buildx create --use --name build --node build
