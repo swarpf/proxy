@@ -47,11 +47,6 @@ jobs:
         run: |
           docker run --rm mplatform/mquery swarpf/proxy:latest
 
-      - name: Clear
-        if: always() && github.event_name != 'pull_request'
-        run: |
-          rm -f ${HOME}/.docker/config.json
-
   buildx-plugins:
     strategy:
       fail-fast: false
@@ -92,8 +87,3 @@ jobs:
         if: always() && github.event_name != 'pull_request'
         run: |
           docker run --rm mplatform/mquery swarpf/plugin_${{ matrix.plugin }}:latest
-
-      - name: Clear
-        if: always() && github.event_name != 'pull_request'
-        run: |
-          rm -f ${HOME}/.docker/config.json
