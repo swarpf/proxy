@@ -35,7 +35,6 @@ func main() {
 
 	// setup logging
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
 	if *development {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})

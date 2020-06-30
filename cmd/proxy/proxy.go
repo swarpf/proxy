@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"flag"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,23 +18,34 @@ import (
 )
 
 func main() {
-	zerolog.SetGlobalLevel(zerolog.TraceLevel)
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+	// load configuration from command line or environment
+	var (
+		proxyAddr   = flag.String("proxyapi_addr", "127.0.0.1:8010", "Address of the proxy host")
+		listenAddr  = flag.String("listen_addr", "127.0.0.1:11000", "Listen address for the plugin")
+		development = flag.Bool("development", false, "Enable development logging")
+	)
+	flag.Parse()
 
-	// todo(lyrex): Move this into some kind of configuration
-	const host = "0.0.0.0"
-	const port = 8009
+	listenAddress := *listenAddr
+	proxyAddress := *proxyAddr
 
-	mainLogger := log.With().Timestamp().Str("log_type", "app").Str("module", "main").Logger()
+	// setup logging
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	if *development {
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+	}
+	log.Logger = log.With().Timestamp().Str("log_type", "app").Str("app", "Proxy").Logger()
+
+	mainLogger := log.With().Str("module", "main").Logger()
 	mainLogger.Info().
-		Str("host", host).
-		Uint16("port", port).
-		Msgf("Server listening to %s:%d", host, port)
+		Str("proxyAddr", listenAddress).
+		Msgf("Server listening to %s", listenAddress)
 
 	apiEvents := make(chan events.ApiEventMsg, 1)
 
 	// initialize proxy manager
-	pm := pmanager.NewProxyManager()
+	pm := pmanager.NewProxyManager(proxyAddress)
 
 	// initialize proxy
 	swProxy := swproxy.New(apiEvents, swproxy.ProxyConfiguration{
@@ -43,7 +54,7 @@ func main() {
 	})
 	httpProxy := swProxy.CreateProxy()
 
-	server := &http.Server{Addr: fmt.Sprintf("%s:%d", host, port), Handler: httpProxy}
+	server := &http.Server{Addr: listenAddress, Handler: httpProxy}
 	go func() {
 		err := server.ListenAndServe()
 

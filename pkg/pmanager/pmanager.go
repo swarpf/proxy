@@ -29,16 +29,11 @@ type ProxyManager struct {
 	em *apiemitter.Emitter
 }
 
-func NewProxyManager() *ProxyManager {
+func NewProxyManager(proxyApiAddr string) *ProxyManager {
 	activeProxyConsumers = make(map[string]proxyConsumer)
 	proxyApiLogger = log.With().Timestamp().Str("log_type", "module").Str("module", "ProxyAPI").Logger()
 
 	go func() {
-		// todo(lyrex): Move this into some kind of configuration
-		const proxyHost = "127.0.0.1"
-		const proxyPort = 8010
-		proxyApiAddr := fmt.Sprintf("%s:%d", proxyHost, proxyPort)
-
 		// initialize proxy consumer
 		lis, err := net.Listen("tcp", proxyApiAddr)
 		if err != nil {
