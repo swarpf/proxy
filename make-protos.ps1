@@ -37,5 +37,5 @@ if (!($PROTOC_GEN_GO_GRPC_EXE || Test-Path $PROTOC_GEN_GO_GRPC_EXE))
     Throw "Could not find protoc-gen-go-grpc.exe"
 }
 
-Invoke-Expression "protoc -I=`"./proto/api`" --go_out=proto-gen/ ./proto/api/proxyapi.proto"
-Invoke-Expression "protoc -I=`"./proto/api`" --go-grpc_out=proto-gen/ ./proto/api/proxyapi.proto"
+Invoke-Expression "protoc -I=`"./swarpf-idl/proto/api`" --go_out=proto-gen/ ./swarpf-idl/proto/api/proxyapi.proto"
+Invoke-Expression "protoc -I=`"./swarpf-idl/proto/api`" --go-grpc_out=proto-gen/ ./swarpf-idl/proto/api/proxyapi.proto"
