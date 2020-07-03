@@ -12,9 +12,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/lyrex/swarpf/pkg/apiemitter"
-	"github.com/lyrex/swarpf/pkg/events"
-	pb "github.com/lyrex/swarpf/proto-gen/proxyapi"
+	"github.com/swarpf/proxy/pkg/apiemitter"
+	"github.com/swarpf/proxy/pkg/events"
+	pb "github.com/swarpf/proxy/proto-gen/proxyapi"
 )
 
 type proxyConsumer struct {

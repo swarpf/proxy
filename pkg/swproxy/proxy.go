@@ -12,8 +12,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lyrex/swarpf/pkg/events"
-	"github.com/lyrex/swarpf/pkg/utils"
+	"github.com/swarpf/proxy/pkg/events"
+	"github.com/swarpf/proxy/pkg/utils"
 )
 
 type ProxyConfiguration struct {

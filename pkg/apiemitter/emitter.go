@@ -4,7 +4,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/lyrex/swarpf/pkg/events"
+	"github.com/swarpf/proxy/pkg/events"
 )
 
 // Flag used to describe what behavior you do expect.

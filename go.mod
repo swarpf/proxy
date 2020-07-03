@@ -1,4 +1,4 @@
-module github.com/lyrex/swarpf
+module github.com/swarpf/proxy
 
 go 1.14
 

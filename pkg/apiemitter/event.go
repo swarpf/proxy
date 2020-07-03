@@ -1,6 +1,6 @@
 package apiemitter
 
-import "github.com/lyrex/swarpf/pkg/events"
+import "github.com/swarpf/proxy/pkg/events"
 
 // Event is a structure to send events contains
 // some helpers to cast primitive types easily.

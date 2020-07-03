@@ -12,9 +12,9 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/lyrex/swarpf/pkg/events"
-	"github.com/lyrex/swarpf/pkg/pmanager"
-	"github.com/lyrex/swarpf/pkg/swproxy"
+	"github.com/swarpf/proxy/pkg/events"
+	"github.com/swarpf/proxy/pkg/pmanager"
+	"github.com/swarpf/proxy/pkg/swproxy"
 )
 
 func main() {
