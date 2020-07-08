@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	pb "github.com/swarpf/proxy/proto-gen/proxyapi"
+	pb "github.com/swarpf/proxy/swarpf-idl/proto-gen-go/proxyapi"
 )
 
 func ConnectToProxyApi(proxyAddress string, delay bool) (*grpc.ClientConn, pb.ProxyApiClient,

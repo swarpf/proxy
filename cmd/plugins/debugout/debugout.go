@@ -13,8 +13,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
-	"github.com/swarpf/proxy/pkg/proxyapiutil"
-	pb "github.com/swarpf/proxy/proto-gen/proxyapi"
+	pb "github.com/swarpf/proxy/swarpf-idl/proto-gen-go/proxyapi"
+
+	"github.com/swarpf/proxy/internal/proxyapiutil"
 )
 
 func subscribedCommands() []string {

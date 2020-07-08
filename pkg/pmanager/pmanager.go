@@ -14,7 +14,7 @@ import (
 
 	"github.com/swarpf/proxy/pkg/apiemitter"
 	"github.com/swarpf/proxy/pkg/events"
-	pb "github.com/swarpf/proxy/proto-gen/proxyapi"
+	pb "github.com/swarpf/proxy/swarpf-idl/proto-gen-go/proxyapi"
 )
 
 type proxyConsumer struct {
