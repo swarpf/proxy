@@ -20,14 +20,14 @@ import (
 func main() {
 	// load configuration from command line or environment
 	var (
-		proxyAddr   = flag.String("proxyapi_addr", "127.0.0.1:8010", "Address of the proxy host")
-		listenAddr  = flag.String("listen_addr", "127.0.0.1:11000", "Listen address for the plugin")
-		development = flag.Bool("development", false, "Enable development logging")
+		listenAddr   = flag.String("listen_addr", "127.0.0.1:8010", "Listen address for the http proxy")
+		proxyApiAddr = flag.String("proxyapi_addr", "127.0.0.1:11000", "Listen address for the proxy API")
+		development  = flag.Bool("development", false, "Enable development logging")
 	)
 	flag.Parse()
 
 	listenAddress := *listenAddr
-	proxyAddress := *proxyAddr
+	proxyApiAddress := *proxyApiAddr
 
 	// setup logging
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
@@ -39,13 +39,13 @@ func main() {
 
 	mainLogger := log.With().Str("module", "main").Logger()
 	mainLogger.Info().
-		Str("proxyAddr", listenAddress).
+		Str("listenAddress", listenAddress).
 		Msgf("Server listening to %s", listenAddress)
 
 	apiEvents := make(chan events.ApiEventMsg, 1)
 
 	// initialize proxy manager
-	pm := pmanager.NewProxyManager(proxyAddress)
+	pm := pmanager.NewProxyManager(proxyApiAddress)
 
 	// initialize proxy
 	swProxy := swproxy.New(apiEvents, swproxy.ProxyConfiguration{
