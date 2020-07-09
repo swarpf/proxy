@@ -46,6 +46,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Print Go version and environment
         id: vars
@@ -120,6 +122,8 @@ jobs:
 
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Print Go version and environment
         id: vars
@@ -164,6 +168,8 @@ jobs:
 #    steps:
 #      - name: checkout
 #        uses: actions/checkout@v2
+#        with:
+#          submodules: recursive
 #      - uses: goreleaser/goreleaser-action@v2
 #        with:
 #          version: latest
