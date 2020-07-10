@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"net"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/peer"
 
 	"github.com/swarpf/proxy/pkg/apiemitter"
 	"github.com/swarpf/proxy/pkg/events"
@@ -108,11 +110,19 @@ type proxyApiServer struct {
 	pb.UnimplementedProxyApiServer
 }
 
-func (s *proxyApiServer) Register(_ context.Context, opts *pb.ProxyApiOptions) (*pb.ProxyApiProviderResponse, error) {
+func (s *proxyApiServer) Register(ctx context.Context, opts *pb.ProxyApiOptions) (*pb.ProxyApiProviderResponse, error) {
 	proxyApiLogger.Info().
-		Str("consumerAddr", opts.Address).
+		Str("remoteAddr", opts.Address).
 		Strs("commands", opts.Commands).
 		Msg("New request to register a proxy api consumer")
+
+	p, _ := peer.FromContext(ctx)
+
+	parts := strings.Split(opts.Address, ":")
+	pluginPort := parts[len(parts)-1]
+	opts.Address = fmt.Sprintf("%s:%s", p.Addr.String(), pluginPort)
+
+	proxyApiLogger.Debug().Str("remoteAddr", opts.Address).Msg("Connecting using corrected IP address")
 
 	_, exists := activeProxyConsumers[opts.Address]
 	if exists {
