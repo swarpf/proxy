@@ -20,8 +20,8 @@ import (
 func main() {
 	// load configuration from command line or environment
 	var (
-		listenAddr   = flag.String("listen_addr", "127.0.0.1:8010", "Listen address for the http proxy")
-		proxyApiAddr = flag.String("proxyapi_addr", "127.0.0.1:11000", "Listen address for the proxy API")
+		listenAddr   = flag.String("proxy_listen_addr", "0.0.0.0:8010", "Listen address for the http proxy")
+		proxyApiAddr = flag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
 		development  = flag.Bool("development", false, "Enable development logging")
 	)
 	flag.Parse()
