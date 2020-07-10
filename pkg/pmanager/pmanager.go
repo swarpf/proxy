@@ -118,9 +118,17 @@ func (s *proxyApiServer) Register(ctx context.Context, opts *pb.ProxyApiOptions)
 
 	p, _ := peer.FromContext(ctx)
 
-	parts := strings.Split(opts.Address, ":")
-	pluginPort := parts[len(parts)-1]
-	opts.Address = fmt.Sprintf("%s:%s", p.Addr.String(), pluginPort)
+	getIpParts := func(addr string) (string, string) {
+		parts := strings.Split(addr, ":")
+		port := parts[len(parts)-1]
+		ip := strings.Join(parts[:len(parts)-1], "")
+		return ip, port
+	}
+
+	remoteAddr, _ := getIpParts(p.Addr.String())
+	_, pluginPort := getIpParts(opts.Address)
+
+	opts.Address = fmt.Sprintf("%s:%s", remoteAddr, pluginPort)
 
 	proxyApiLogger.Debug().Str("remoteAddr", opts.Address).Msg("Connecting using corrected IP address")
 
