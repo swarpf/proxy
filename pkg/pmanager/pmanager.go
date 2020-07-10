@@ -110,6 +110,13 @@ type proxyApiServer struct {
 	pb.UnimplementedProxyApiServer
 }
 
+func getIpParts(addr string) (string, string) {
+	parts := strings.Split(addr, ":")
+	port := parts[len(parts)-1]
+	ip := strings.Join(parts[:len(parts)-1], "")
+	return ip, port
+}
+
 func (s *proxyApiServer) Register(ctx context.Context, opts *pb.ProxyApiOptions) (*pb.ProxyApiProviderResponse, error) {
 	proxyApiLogger.Info().
 		Str("remoteAddr", opts.Address).
@@ -117,17 +124,8 @@ func (s *proxyApiServer) Register(ctx context.Context, opts *pb.ProxyApiOptions)
 		Msg("New request to register a proxy api consumer")
 
 	p, _ := peer.FromContext(ctx)
-
-	getIpParts := func(addr string) (string, string) {
-		parts := strings.Split(addr, ":")
-		port := parts[len(parts)-1]
-		ip := strings.Join(parts[:len(parts)-1], "")
-		return ip, port
-	}
-
 	remoteAddr, _ := getIpParts(p.Addr.String())
 	_, pluginPort := getIpParts(opts.Address)
-
 	opts.Address = fmt.Sprintf("%s:%s", remoteAddr, pluginPort)
 
 	proxyApiLogger.Debug().Str("remoteAddr", opts.Address).Msg("Connecting using corrected IP address")
@@ -166,11 +164,18 @@ func (s *proxyApiServer) Register(ctx context.Context, opts *pb.ProxyApiOptions)
 	return &pb.ProxyApiProviderResponse{Success: true}, nil
 }
 
-func (s *proxyApiServer) Disconnect(_ context.Context, opts *pb.ProxyApiOptions) (*pb.ProxyApiProviderResponse, error) {
+func (s *proxyApiServer) Disconnect(ctx context.Context, opts *pb.ProxyApiOptions) (*pb.ProxyApiProviderResponse, error) {
 	proxyApiLogger.Info().
 		Str("consumerAddr", opts.Address).
 		Strs("commands", opts.Commands).
 		Msg("New request to disconnect a proxy api consumer")
+
+	p, _ := peer.FromContext(ctx)
+	remoteAddr, _ := getIpParts(p.Addr.String())
+	_, pluginPort := getIpParts(opts.Address)
+	opts.Address = fmt.Sprintf("%s:%s", remoteAddr, pluginPort)
+
+	proxyApiLogger.Debug().Str("remoteAddr", opts.Address).Msg("Disconnecting using corrected IP address")
 
 	_, exists := activeProxyConsumers[opts.Address]
 	if !exists {
