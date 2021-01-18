@@ -5,7 +5,7 @@ FROM --platform=${BUILDPLATFORM:-linux/amd64} golang:alpine AS build
 
 ENV CGO_ENABLED 0
 ENV GO111MODULE on
-ENV GOPROXY https://goproxy.io
+ENV GOPROXY https://proxy.golang.org,direct
 COPY --from=xgo / /
 
 ARG TARGETPLATFORM
@@ -22,10 +22,11 @@ RUN apk --update --no-cache add \
 
 # Compile the cmd to a standalone binary
 WORKDIR /app
-COPY . .
-RUN go mod vendor
-RUN go build -ldflags "-s -w -extldflags '-static'" ./cmd/proxy/
+COPY go.mod go.sum ./
+RUN go mod download
 
+COPY . .
+RUN go build -ldflags "-s -w -extldflags '-static'" ./cmd/proxy/
 
 FROM --platform=${TARGETPLATFORM:-linux/amd64} alpine:latest
 
