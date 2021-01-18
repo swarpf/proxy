@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	grpczerolog "github.com/cheapRoc/grpc-zerolog"
 	"github.com/elazarl/goproxy"
@@ -19,6 +20,7 @@ import (
 type ProxyConfiguration struct {
 	CertificateDirectory string `default:"./certs/"`
 	InterceptHttps       bool
+	ForceHttpDowngrade   bool   `default:"false"`
 }
 
 type Proxy struct {
@@ -44,6 +46,14 @@ func New(ev chan events.ApiEventMsg, configuration ProxyConfiguration) *Proxy {
 func (p *Proxy) CreateProxy() http.Handler {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Logger = grpczerolog.New(log.Logger) // todo(lyrex): this need some kind of better implementation that does not just throw everything into INFO
+
+	if p.configuration.ForceHttpDowngrade {
+		p.log.Info().Msg("HTTPS -> HTTP downgrade is enabled")
+
+		// match the /api/location_c2.php endpoint and modify the body if necessary
+		proxy.OnResponse(newLocationServiceMatcher()).
+			DoFunc(p.onLocationResponse)
+	}
 
 	if p.configuration.InterceptHttps {
 		rootCa := getRootCA(p.configuration.CertificateDirectory)
@@ -147,6 +157,76 @@ func (p *Proxy) onResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Res
 		Request:  requestPlainContent,
 		Response: responsePlainContent,
 	}
+
+	return resp
+}
+
+func (p *Proxy) onLocationResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *http.Response {
+	responseLogger := p.log.With().
+		Int64("ctx.Session", ctx.Session).
+		Str("tag", "location_endpoint").
+		Logger()
+
+	responseLogger.Trace().
+		Stringer("ctx.Req.URL", ctx.Req.URL).
+		Interface("ctx.Req.Header", ctx.Req.Header).
+		Msg("New incoming location response")
+
+	if resp == nil || resp.ContentLength == 0 || resp.Body == nil {
+		responseLogger.Info().Msg("Received empty reponse from location API")
+		return resp
+	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		responseLogger.Error().Err(err).Msg("could not read location response body")
+		return resp
+	}
+	// NOTE: we keep this here to not break the buffer if we need to bail early
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	responseText, err := p.readBody(string(bodyBytes), true)
+	if err != nil {
+		// do not log here since we're logging the actual error in readBody
+		return resp
+	}
+
+	responseLogger.Info().
+		Str("plainContent", responseText).
+		Msg("Receiving location response from API")
+
+	// ensure we really do have a correctly decryped body
+	if !strings.Contains(responseText, "server_url_list") {
+		p.log.Warn().Msg("Location API response does not contain server url list.")
+		return resp
+	}
+
+	// replace all occurences of https with http
+	modifiedResponseText := strings.ReplaceAll(responseText, "https:", "http:")
+	modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "HTTPS:", "HTTP:")
+
+	// encrypt and compress new response text
+	workmem, err := utils.CompressBytes([]byte(modifiedResponseText)) // TODO: maybe do something similiar to Encoding.ASCII.GetBytes
+	if err != nil {
+		p.log.Warn().Err(err).Msg("could not compress data")
+		return resp
+	}
+
+	workmem, err = utils.EncryptBytes(workmem)
+	if err != nil {
+		p.log.Warn().Err(err).Msg("could not encrypt bytes")
+		return resp
+	}
+
+	modifiedBodyBytes := []byte(base64.StdEncoding.EncodeToString(workmem))
+
+	// write modified body to response
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(modifiedBodyBytes))
+
+	responseLogger.Info().
+		Bytes("encryptedContent", modifiedBodyBytes).
+		Str("plainContent", modifiedResponseText).
+		Msg("Modified server response and replaced HTTPS with HTTP.")
 
 	return resp
 }

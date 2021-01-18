@@ -23,6 +23,7 @@ func main() {
 	pflag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
 	pflag.Bool("development", false, "Enable development logging")
 	pflag.Bool("intercept_https", false, "Enable HTTPS interception")
+	pflag.Bool("force_http_downgrade", false, "Forces the use of HTTP when talking to the API")
 	pflag.Parse()
 
 	viper.SetEnvPrefix("swarpf_proxy")
@@ -57,6 +58,7 @@ func main() {
 	swProxy := swproxy.New(apiEvents, swproxy.ProxyConfiguration{
 		CertificateDirectory: "./cert/",
 		InterceptHttps:       viper.GetBool("intercept_https"),
+		ForceHttpDowngrade:   viper.GetBool("force_http_downgrade"),
 	})
 	httpProxy := swProxy.CreateProxy()
 

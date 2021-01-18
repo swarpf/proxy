@@ -47,6 +47,41 @@ func (s proxyGameEndpointMatcher) matches(ctx *goproxy.ProxyCtx) bool {
 	return methodMatches && hostMatches
 }
 
+// Location Service Endpoint Matcher
+type locationServiceEndpointMatcher struct{}
+
+func newLocationServiceMatcher() *locationServiceEndpointMatcher {
+	return new(locationServiceEndpointMatcher)
+}
+
+func (s locationServiceEndpointMatcher) HandleReq(_ *http.Request, ctx *goproxy.ProxyCtx) bool {
+	return s.matches(ctx)
+}
+
+func (s locationServiceEndpointMatcher) HandleResp(_ *http.Response, ctx *goproxy.ProxyCtx) bool {
+	return s.matches(ctx)
+}
+
+func (s locationServiceEndpointMatcher) matches(ctx *goproxy.ProxyCtx) bool {
+	methodMatches := ctx.Req.Method == "GET"
+	hostMatches := strings.HasPrefix(ctx.Req.Host, "summonerswar-") &&
+		strings.HasSuffix(ctx.Req.Host, "qpyou.cn")
+	urlMatches := ctx.Req.URL.Path == "/api/location_c2.php"
+
+	if hostMatches {
+		log.Trace().
+			Str("log_type", "module").
+			Str("module", "locationServiceEndpointMatcher").
+			Str("host", ctx.Req.Host).
+			Stringer("url", ctx.Req.URL).
+			Str("method", ctx.Req.Method).
+			Bool("endpoint_matches", methodMatches && hostMatches).
+			Msg("Checking if endpoint matches")
+	}
+
+	return methodMatches && hostMatches && urlMatches
+}
+
 // // Game Endpoint Matcher
 // used to intercept requests from and to the Com2uS game server
 type gameEndpointMatcher struct{}
