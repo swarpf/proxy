@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +10,8 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 
 	"github.com/swarpf/proxy/pkg/events"
 	"github.com/swarpf/proxy/pkg/pmanager"
@@ -18,21 +19,25 @@ import (
 )
 
 func main() {
-	// load configuration from command line or environment
-	var (
-		listenAddr     = flag.String("proxy_listen_addr", "0.0.0.0:8010", "Listen address for the http proxy")
-		proxyApiAddr   = flag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
-		development    = flag.Bool("development", false, "Enable development logging")
-		interceptHttps = flag.Bool("intercept_https", false, "Enable HTTPS interception")
-	)
-	flag.Parse()
+	pflag.String("proxy_listen_addr", "0.0.0.0:8010", "Listen address for the http proxy")
+	pflag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
+	pflag.Bool("development", false, "Enable development logging")
+	pflag.Bool("intercept_https", false, "Enable HTTPS interception")
+	pflag.Parse()
 
-	listenAddress := *listenAddr
-	proxyApiAddress := *proxyApiAddr
+	viper.SetEnvPrefix("swarpf_proxy")
+	err := viper.BindPFlags(pflag.CommandLine)
+	if err != nil {
+		return
+	}
+	viper.AutomaticEnv()
+
+	listenAddress := viper.GetString("proxy_listen_addr")
+	proxyApiAddress := viper.GetString("proxyapi_listen_addr")
 
 	// setup logging
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if *development {
+	if viper.GetBool("development") {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
 	}
@@ -51,7 +56,7 @@ func main() {
 	// initialize proxy
 	swProxy := swproxy.New(apiEvents, swproxy.ProxyConfiguration{
 		CertificateDirectory: "./cert/",
-		InterceptHttps:       *interceptHttps,
+		InterceptHttps:       viper.GetBool("intercept_https"),
 	})
 	httpProxy := swProxy.CreateProxy()
 
