@@ -210,15 +210,15 @@ func (p *Proxy) onLocationResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *
 	modifiedResponseText := responseText
 
 	// only downgrade connections to the game api
-	// for _, server := range []string{"gb-lb", "h-lb", "jp-lb", "cn-t", "sea-lb", "eu-lb"} {
-	// 	modifiedResponseText = strings.ReplaceAll(modifiedResponseText,
-	// 		`https:\/\/summonerswar-`+server+`.qpyou.cn\/api\/gateway_c2.php`,
-	// 		`http:\/\/summonerswar-`+server+`.qpyou.cn\/api\/gateway_c2.php`)
-	// }
+	for _, server := range []string{"gb-lb", "h-lb", "jp-lb", "cn-t", "sea-lb", "eu-lb"} {
+		modifiedResponseText = strings.ReplaceAll(modifiedResponseText,
+			`https:\/\/summonerswar-`+server+`.qpyou.cn\/api\/gateway_c2.php`,
+			`http:\/\/summonerswar-`+server+`.qpyou.cn\/api\/gateway_c2.php`)
+	}
 
 	// replace all occurences of https with http
-	modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "https:", "http:")
-	modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "HTTPS:", "HTTP:")
+	// modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "https:", "http:")
+	// modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "HTTPS:", "HTTP:")
 
 	// encrypt and compress new response text
 	workmem, err := utils.CompressBytes([]byte(modifiedResponseText))
