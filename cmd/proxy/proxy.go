@@ -20,9 +20,10 @@ import (
 func main() {
 	// load configuration from command line or environment
 	var (
-		listenAddr   = flag.String("proxy_listen_addr", "0.0.0.0:8010", "Listen address for the http proxy")
-		proxyApiAddr = flag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
-		development  = flag.Bool("development", false, "Enable development logging")
+		listenAddr     = flag.String("proxy_listen_addr", "0.0.0.0:8010", "Listen address for the http proxy")
+		proxyApiAddr   = flag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
+		development    = flag.Bool("development", false, "Enable development logging")
+		interceptHttps = flag.Bool("intercept_https", false, "Enable HTTPS interception")
 	)
 	flag.Parse()
 
@@ -50,7 +51,7 @@ func main() {
 	// initialize proxy
 	swProxy := swproxy.New(apiEvents, swproxy.ProxyConfiguration{
 		CertificateDirectory: "./cert/",
-		InterceptHttps:       false,
+		InterceptHttps:       *interceptHttps,
 	})
 	httpProxy := swProxy.CreateProxy()
 
