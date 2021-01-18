@@ -21,7 +21,8 @@ import (
 func main() {
 	pflag.String("proxy_listen_addr", "0.0.0.0:8010", "Listen address for the http proxy")
 	pflag.String("proxyapi_listen_addr", "0.0.0.0:11000", "Listen address for the proxy API")
-	pflag.Bool("development", false, "Enable development logging")
+	pflag.Bool("verbose", false, "Enable verbose logging")
+	pflag.Bool("log_pretty_print", false, "Enable human readable log")
 	pflag.Bool("intercept_https", false, "Enable HTTPS interception")
 	pflag.Bool("force_http_downgrade", false, "Forces the use of HTTP when talking to the API")
 	pflag.Parse()
@@ -38,10 +39,14 @@ func main() {
 
 	// setup logging
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if viper.GetBool("development") {
+	if viper.GetBool("verbose") {
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	}
+
+	if viper.GetBool("log_pretty_print") {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
 	}
+
 	log.Logger = log.With().Timestamp().Str("log_type", "app").Str("app", "Proxy").Logger()
 
 	mainLogger := log.With().Str("module", "main").Logger()
@@ -59,6 +64,7 @@ func main() {
 		CertificateDirectory: "./cert/",
 		InterceptHttps:       viper.GetBool("intercept_https"),
 		ForceHttpDowngrade:   viper.GetBool("force_http_downgrade"),
+		Verbose:              viper.GetBool("verbose"),
 	})
 	httpProxy := swProxy.CreateProxy()
 

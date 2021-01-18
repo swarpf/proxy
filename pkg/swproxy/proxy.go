@@ -20,7 +20,8 @@ import (
 type ProxyConfiguration struct {
 	CertificateDirectory string `default:"./certs/"`
 	InterceptHttps       bool
-	ForceHttpDowngrade   bool   `default:"false"`
+	ForceHttpDowngrade   bool `default:"false"`
+	Verbose              bool `default:"false"`
 }
 
 type Proxy struct {
@@ -46,6 +47,7 @@ func New(ev chan events.ApiEventMsg, configuration ProxyConfiguration) *Proxy {
 func (p *Proxy) CreateProxy() http.Handler {
 	proxy := goproxy.NewProxyHttpServer()
 	proxy.Logger = grpczerolog.New(log.Logger) // todo(lyrex): this need some kind of better implementation that does not just throw everything into INFO
+	proxy.Verbose = p.configuration.Verbose
 
 	if p.configuration.ForceHttpDowngrade {
 		p.log.Info().Msg("HTTPS -> HTTP downgrade is enabled")
@@ -56,6 +58,8 @@ func (p *Proxy) CreateProxy() http.Handler {
 	}
 
 	if p.configuration.InterceptHttps {
+		p.log.Info().Msg("HTTPS interception is enabled")
+
 		rootCa := getRootCA(p.configuration.CertificateDirectory)
 		if err := setCA(rootCa); err != nil {
 			p.log.Fatal().Err(err).Msg("could not set proxy CA")
@@ -66,7 +70,7 @@ func (p *Proxy) CreateProxy() http.Handler {
 
 		proxy.OnRequest(newCertificateEndpointMatcher()).DoFunc(
 			func(req *http.Request, ctx *goproxy.ProxyCtx) (*http.Request, *http.Response) {
-				p.log.Info().Msg("service user requested certificate")
+				p.log.Debug().Msg("user requested certificate")
 				return req,
 					goproxy.NewResponse(req, goproxy.ContentTypeText, http.StatusOK, string(rootCa.Certificate[0]))
 			})
