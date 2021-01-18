@@ -222,6 +222,7 @@ func (p *Proxy) onLocationResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *
 
 	// write modified body to response
 	resp.Body = ioutil.NopCloser(bytes.NewBuffer(modifiedBodyBytes))
+	resp.ContentLength = int64(len(modifiedBodyBytes))
 
 	responseLogger.Info().
 		Bytes("encryptedContent", modifiedBodyBytes).
