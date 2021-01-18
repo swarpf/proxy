@@ -50,7 +50,7 @@ func (p *Proxy) CreateProxy() http.Handler {
 	proxy.Verbose = p.configuration.Verbose
 
 	if p.configuration.ForceHttpDowngrade {
-		p.log.Info().Msg("HTTPS -> HTTP downgrade is enabled")
+		p.log.Warn().Msg("HTTPS -> HTTP downgrade is enabled")
 
 		// match the /api/location_c2.php endpoint and modify the body if necessary
 		proxy.OnResponse(newLocationServiceMatcher()).
@@ -58,7 +58,7 @@ func (p *Proxy) CreateProxy() http.Handler {
 	}
 
 	if p.configuration.InterceptHttps {
-		p.log.Info().Msg("HTTPS interception is enabled")
+		p.log.Warn().Msg("HTTPS interception is enabled")
 
 		rootCa := getRootCA(p.configuration.CertificateDirectory)
 		if err := setCA(rootCa); err != nil {
@@ -195,9 +195,11 @@ func (p *Proxy) onLocationResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *
 		return resp
 	}
 
-	responseLogger.Info().
+	responseLogger.Info().Msg("Receiving location response from API")
+	responseLogger.Trace().
+		Bytes("encryptedContent", bodyBytes).
 		Str("plainContent", responseText).
-		Msg("Receiving location response from API")
+		Int64("ContentLength", resp.ContentLength).Send()
 
 	// ensure we really do have a correctly decryped body
 	if !strings.Contains(responseText, "server_url_list") {
@@ -205,35 +207,40 @@ func (p *Proxy) onLocationResponse(resp *http.Response, ctx *goproxy.ProxyCtx) *
 		return resp
 	}
 
+	modifiedResponseText := responseText
+
+	// only downgrade connections to the game api
+	// for _, server := range []string{"gb-lb", "h-lb", "jp-lb", "cn-t", "sea-lb", "eu-lb"} {
+	// 	modifiedResponseText = strings.ReplaceAll(modifiedResponseText,
+	// 		`https:\/\/summonerswar-`+server+`.qpyou.cn\/api\/gateway_c2.php`,
+	// 		`http:\/\/summonerswar-`+server+`.qpyou.cn\/api\/gateway_c2.php`)
+	// }
+
 	// replace all occurences of https with http
-	modifiedResponseText := strings.ReplaceAll(responseText, "https:", "http:")
+	modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "https:", "http:")
 	modifiedResponseText = strings.ReplaceAll(modifiedResponseText, "HTTPS:", "HTTP:")
 
 	// encrypt and compress new response text
-	workmem, err := utils.CompressBytes([]byte(modifiedResponseText)) // TODO: maybe do something similiar to Encoding.ASCII.GetBytes
+	workmem, err := utils.CompressBytes([]byte(modifiedResponseText))
 	if err != nil {
 		p.log.Warn().Err(err).Msg("could not compress data")
 		return resp
 	}
-
 	workmem, err = utils.EncryptBytes(workmem)
 	if err != nil {
 		p.log.Warn().Err(err).Msg("could not encrypt bytes")
 		return resp
 	}
 
-	modifiedBodyBytes := []byte(base64.StdEncoding.EncodeToString(workmem))
+	responseBody := base64.StdEncoding.EncodeToString(workmem)
 
-	// write modified body to response
-	resp.Body = ioutil.NopCloser(bytes.NewBuffer(modifiedBodyBytes))
-	resp.ContentLength = int64(len(modifiedBodyBytes))
+	responseLogger.Info().Msg("Modified server response and replaced HTTPS with HTTP.")
+	responseLogger.Trace().
+		Str("encryptedContent", responseBody).
+		Str("plainContent", modifiedResponseText).Send()
 
-	responseLogger.Info().
-		Bytes("encryptedContent", modifiedBodyBytes).
-		Str("plainContent", modifiedResponseText).
-		Msg("Modified server response and replaced HTTPS with HTTP.")
-
-	return resp
+	// create new response and send it to the client
+	return goproxy.NewResponse(ctx.Req, "application/json; charset=utf-8", 200, responseBody)
 }
 
 func (p *Proxy) readBody(body string, decompress bool) (string, error) {
