@@ -33,11 +33,22 @@ func setCA(rootCa tls.Certificate) error {
 func getRootCA(certDir string) tls.Certificate {
 	appfs := afero.NewOsFs()
 
-	if dirExists, err := afero.DirExists(appfs, certDir); !dirExists {
-		log.Fatal().Err(err).Msg("Failed to check if the certificate directory exists")
+	dirExists, err := afero.DirExists(appfs, certDir)
+	if err != nil {
+		log.Fatal().Err(err).
+			Str("cert_dir", certDir).
+			Msg("Failed to check if the certificate directory exists")
+	}
+
+	if !dirExists {
+		log.Warn().
+			Str("cert_dir", certDir).
+			Msg("certificate directory does not exist - trying to create it")
 
 		if err := appfs.MkdirAll(certDir, 0755); err != nil {
-			log.Fatal().Err(err).Msg("Failed to create the certificate directory exists")
+			log.Fatal().Err(err).
+				Str("cert_dir", certDir).
+				Msg("Failed to create the certificate directory")
 		}
 	}
 
