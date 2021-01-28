@@ -31,7 +31,7 @@ func (s proxyGameEndpointMatcher) matches(ctx *goproxy.ProxyCtx) bool {
 	methodMatches := ctx.Req.Method == "CONNECT"
 
 	hostMatches := strings.HasPrefix(ctx.Req.Host, "summonerswar-") &&
-		strings.HasSuffix(ctx.Req.Host, "qpyou.cn")
+		(strings.HasSuffix(ctx.Req.Host, "qpyou.cn") || strings.HasSuffix(ctx.Req.Host, "qpyou.cn:443"))
 
 	if hostMatches {
 		log.Trace().
