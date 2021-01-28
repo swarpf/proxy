@@ -53,7 +53,7 @@ func getRootCA(certDir string) tls.Certificate {
 	}
 
 	caCertPath := path.Join(certDir, "ca.crt")
-	caCertExists, err := afero.Exists(appfs, path.Join(certDir, caCertPath))
+	caCertExists, err := afero.Exists(appfs, caCertPath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to check if the CA certificate exists")
 	}
