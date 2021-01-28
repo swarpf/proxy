@@ -64,10 +64,20 @@ func getRootCA(certDir string) tls.Certificate {
 		log.Fatal().Err(err).Msg("Failed to check if the CA private key exists")
 	}
 
+	log.Debug().
+		Str("cert_dir", certDir).
+		Str("ca_cert_path", caCertPath).
+		Str("ca_key_path", caKeyPath).
+		Bool("ca_cert_exists", caCertExists).
+		Bool("ca_key_exists", caKeyExists).
+		Send()
+
 	// create a new CA and write its certificate and private key to disk
 	if !caCertExists || !caKeyExists {
 		_ = appfs.Remove(caCertPath)
 		_ = appfs.Remove(caKeyPath)
+
+		log.Info().Msg("Generating new CA cert and key")
 
 		caCert, caPrivKey := generateCA()
 		if err := afero.WriteFile(appfs, caCertPath, caCert, 0644); err != nil {
@@ -76,6 +86,11 @@ func getRootCA(certDir string) tls.Certificate {
 		if err := afero.WriteFile(appfs, caKeyPath, caPrivKey, 0600); err != nil {
 			log.Fatal().Err(err).Msg("Failed to write CA private key to disk")
 		}
+
+		log.Trace().
+			Bytes("ca_cert", caCert).
+			Bytes("ca_key", caPrivKey).
+			Msg("Generated CA cert/key pair")
 	}
 
 	// read (back) the certificate and private key from disk
@@ -98,7 +113,7 @@ func getRootCA(certDir string) tls.Certificate {
 }
 
 func generateCA() (caCert, privateKey []byte) {
-	notBefore := time.Now()
+	notBefore := time.Now().Add(-10 * time.Second)
 	notAfter := notBefore.AddDate(1, 0, 0)
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
@@ -117,7 +132,7 @@ func generateCA() (caCert, privateKey []byte) {
 		NotAfter:  notAfter,
 
 		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}

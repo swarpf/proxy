@@ -24,6 +24,7 @@ func main() {
 	pflag.Bool("verbose", false, "Enable verbose logging")
 	pflag.Bool("log_pretty_print", false, "Enable human readable log")
 	pflag.Bool("intercept_https", false, "Enable HTTPS interception")
+	pflag.String("certificate_directory", "./certs/", "HTTPS certificate directory (only used when HTTPS interception is enabled)")
 	pflag.Bool("force_http_downgrade", false, "Forces the use of HTTP when talking to the API")
 	pflag.Parse()
 
@@ -61,7 +62,7 @@ func main() {
 
 	// initialize proxy
 	swProxy := swproxy.New(apiEvents, swproxy.ProxyConfiguration{
-		CertificateDirectory: "./cert/",
+		CertificateDirectory: viper.GetString("certificate_directory"),
 		InterceptHttps:       viper.GetBool("intercept_https"),
 		ForceHttpDowngrade:   viper.GetBool("force_http_downgrade"),
 		Verbose:              viper.GetBool("verbose"),
