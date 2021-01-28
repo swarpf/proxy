@@ -142,7 +142,7 @@ func generateCA() (caCert, privateKey []byte) {
 		log.Fatal().Err(err).Msg("Failed go generate private key")
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, privKey.PublicKey, privateKey)
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, &privKey.PublicKey, privKey)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create certificate")
 	}
@@ -152,7 +152,7 @@ func generateCA() (caCert, privateKey []byte) {
 		log.Fatal().Err(err).Msg("Failed to write data to cert.pem")
 	}
 
-	privBytes, err := x509.MarshalPKCS8PrivateKey(privateKey)
+	privBytes, err := x509.MarshalPKCS8PrivateKey(privKey)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Unable to marshal private key")
 	}
